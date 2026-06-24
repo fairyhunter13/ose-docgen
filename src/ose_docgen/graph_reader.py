@@ -5,10 +5,26 @@ Schema: symbols, edges, communities(level 1/2), meta(algo_version).
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# OSE index dirs are named <repo-name>-<hex8>; strip the trailing hash to get a readable name.
+_HASH_SUFFIX = re.compile(r"-[0-9a-f]{6,16}$")
+
+
+def member_name_from_db(db_path: str) -> str:
+    """Derive a human-readable repo name from an OSE graph.db path.
+
+    e.g. ``~/.local/share/opencode-search/indexes/astro-cart-be-abc1234/graph.db``
+         → ``astro-cart-be``
+    Falls back to the parent dir name verbatim if the hash suffix is absent.
+    """
+    raw = Path(db_path).parent.name
+    cleaned = _HASH_SUFFIX.sub("", raw)
+    return cleaned or raw
 
 
 @dataclass(frozen=True)
