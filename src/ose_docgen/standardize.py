@@ -8,6 +8,9 @@ Three file classes (per-file, not per-region — file-level separation):
 
 Asset-tree detection: if >50% of all files in docs_dir are ASSET → the dir is
 classified NON-DOC (coexist mode: we write to our standard buckets alongside).
+
+Bucket classifier: see _classify.py — Tier-0 keyword (default) + Tier-1 Haiku semantic
+(OSE_DOCGEN_LLM=1, batched+cached, falls back to Tier-0 on any error).
 """
 from __future__ import annotations
 
@@ -74,7 +77,9 @@ def classify_tree(docs_dir: Path) -> dict[str, str]:
     return result
 
 
-def _crosswalk_body(docs_dir: Path, classes: dict[str, str]) -> str:
+def _crosswalk_body(
+    docs_dir: Path, classes: dict[str, str], bucket_map: dict[str, str] | None = None
+) -> str:
     _dt = {
         "01-context": "explanation", "02-containers": "explanation/reference",
         "03-components": "explanation", "04-reference": "reference",
@@ -83,7 +88,7 @@ def _crosswalk_body(docs_dir: Path, classes: dict[str, str]) -> str:
     rows = []
     for rel, cls in sorted(classes.items()):
         if cls == "human":
-            bkt = _bucket_for(docs_dir / rel)
+            bkt = (bucket_map or {}).get(rel) or _bucket_for(docs_dir / rel)
             rows.append(f"| `{rel}` | `{bkt}` | {_dt.get(bkt, 'explanation')} |")
     header = (
         "# Documentation Crosswalk\n\n"
@@ -99,15 +104,22 @@ def run(docs_dir: Path, sig: str) -> dict:
 
     Returns: {generated, human, asset, classes, asset_dominated}
     """
+    from ose_docgen import config  # noqa: PLC0415
     classes = classify_tree(docs_dir)
     n_gen = sum(1 for c in classes.values() if c == "generated")
     n_human = sum(1 for c in classes.values() if c == "human")
     n_asset = sum(1 for c in classes.values() if c == "asset")
     dominated = is_asset_dominated(docs_dir) if docs_dir.exists() else False
 
+    bucket_map: dict[str, str] | None = None
+    if config.LLM_ON:
+        from ose_docgen._classify import classify_buckets_semantic  # noqa: PLC0415
+        human_rels = [r for r, c in classes.items() if c == "human"]
+        bucket_map = classify_buckets_semantic(docs_dir, human_rels, docs_dir / "_meta")
+
     crosswalk_path = docs_dir / "_meta" / "CROSSWALK.md"
     if needs_regen(crosswalk_path, sig):
-        write_generated(crosswalk_path, "meta", sig, _crosswalk_body(docs_dir, classes))
+        write_generated(crosswalk_path, "meta", sig, _crosswalk_body(docs_dir, classes, bucket_map))
 
     return {
         "generated": n_gen, "human": n_human, "asset": n_asset,
