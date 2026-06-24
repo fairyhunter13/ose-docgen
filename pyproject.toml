@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=72"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ose-docgen"
+version = "0.1.0"
+description = "In-repo C4×Diátaxis information hierarchy generator for any codebase — driven by Claude Code (Haiku 4.5)"
+requires-python = ">=3.10"
+dependencies = [
+    "igraph>=0.11",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+ose-docgen = "ose_docgen.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
