@@ -23,6 +23,9 @@ ose-docgen = "ose_docgen.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

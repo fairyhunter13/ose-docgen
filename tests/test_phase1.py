@@ -7,12 +7,10 @@ They do NOT require GPU or daemon.
 from __future__ import annotations
 
 import hashlib
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from ose_docgen import graph_reader as gr
 from ose_docgen.generate import generate
 from ose_docgen.provenance import is_generated, source_sig
 

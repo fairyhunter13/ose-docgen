@@ -5,6 +5,7 @@ only files whose source_sig drifted (or new) are regenerated; human-authored fil
 (no generated:true frontmatter) are never touched.
 """
 from __future__ import annotations
+
 from pathlib import Path
 
 from ose_docgen import graph_reader as gr

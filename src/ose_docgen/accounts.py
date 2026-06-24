@@ -92,7 +92,9 @@ def get_profile_usage(config_dir: str) -> ProfileUsage:
     """Return usage metrics for one profile (cached up to 5 min)."""
     token = _load_token(config_dir)
     if not token:
-        return ProfileUsage(config_dir=config_dir, five_hour_pct=1.0, seven_day_pct=1.0, valid=False)
+        return ProfileUsage(
+            config_dir=config_dir, five_hour_pct=1.0, seven_day_pct=1.0, valid=False
+        )
 
     cached = _read_cache(config_dir)
     if cached:
@@ -111,7 +113,9 @@ def get_profile_usage(config_dir: str) -> ProfileUsage:
     five_h = float(data.get("five_hour_utilization", 0.0))
     seven_d = float(data.get("seven_day_utilization", 0.0))
     _write_cache(config_dir, {"five_hour_pct": five_h, "seven_day_pct": seven_d})
-    return ProfileUsage(config_dir=config_dir, five_hour_pct=five_h, seven_day_pct=seven_d, valid=True)
+    return ProfileUsage(
+        config_dir=config_dir, five_hour_pct=five_h, seven_day_pct=seven_d, valid=True
+    )
 
 
 def pick_profile(profiles: list[str], *, saturated: set[str] | None = None) -> str | None:

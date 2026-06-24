@@ -34,12 +34,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.graph:
         graph_db = Path(args.graph)
     else:
-        # Conventional location used by OSE daemon
+        # OSE stores indexes as ~/.local/share/opencode-search/indexes/<name>-<hash>/graph.db
         data_root = Path.home() / ".local" / "share" / "opencode-search"
-        graph_db = data_root / root.name / "graph.db"
-        if not graph_db.exists():
-            # Try sibling convention
-            graph_db = root / "graph.db"
+        index_root = data_root / "indexes"
+        candidates = (
+            sorted(index_root.glob(f"{root.name}-*/graph.db")) if index_root.exists() else []
+        )
+        if len(candidates) == 1:
+            graph_db = candidates[0]
+        elif len(candidates) > 1:
+            print(f"warning: multiple index dirs for '{root.name}' — using newest", file=sys.stderr)
+            graph_db = max(candidates, key=lambda p: p.stat().st_mtime)
+        else:
+            graph_db = root / "graph.db"  # bare fallback
 
     if not graph_db.exists():
         print(f"error: graph.db not found (tried {graph_db})\n"

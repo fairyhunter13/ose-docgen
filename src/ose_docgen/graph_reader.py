@@ -6,9 +6,9 @@ Schema: symbols, edges, communities(level 1/2), meta(algo_version).
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
 
 
 @dataclass(frozen=True)

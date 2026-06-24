@@ -11,7 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ose_docgen import config, graph_reader as gr
+from ose_docgen import config, migrate, standardize
+from ose_docgen import graph_reader as gr
 from ose_docgen.provenance import compute_sig, load_provenance, save_provenance
 from ose_docgen.tree import build_skeleton
 
@@ -73,12 +74,25 @@ def generate(
                 errors.append(f"{path_rel}:{status}")
             # 429 / skipped are benign
 
+    # Phase 3: standardize/migrate (classify tree, build CROSSWALK.md + MIGRATION.md)
+    classify_result = standardize.run(docs_dir, sig)
+    migrate.run(docs_dir, sig, classify_result)
+
     # Update provenance
     meta_dir = docs_dir / "_meta"
     prov = load_provenance(meta_dir)
     prov["sig"] = sig
     prov["written"] = len(written)
     prov["skipped"] = len(skipped)
+    prov["migration"] = {
+        "generated": classify_result["generated"],
+        "human": classify_result["human"],
+        "asset": classify_result["asset"],
+        "asset_dominated": classify_result["asset_dominated"],
+    }
     save_provenance(meta_dir, prov)
 
-    return {"written": written, "skipped": skipped, "errors": errors, "sig": sig}
+    return {
+        "written": written, "skipped": skipped, "errors": errors,
+        "sig": sig, "migration": classify_result,
+    }

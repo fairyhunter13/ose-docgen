@@ -20,7 +20,7 @@ def language_summary(symbols: list[gr.Symbol]) -> str:
     langs = Counter(s.language for s in symbols if s.language)
     if not langs:
         return ""
-    return "Languages: " + ", ".join(f"{l}({n})" for l, n in langs.most_common(5))
+    return "Languages: " + ", ".join(f"{lang}({n})" for lang, n in langs.most_common(5))
 
 
 def _safe_id(text: str) -> str:

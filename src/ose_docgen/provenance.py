@@ -53,7 +53,10 @@ def source_sig(path: Path) -> str | None:
 
 def make_frontmatter(c4_level: str, sig: str) -> str:
     """Build a YAML frontmatter block for a generated file."""
-    return f"---\ngenerated: true\nsource_sig: {sig}\nhier_version: {HIER_VERSION}\nc4_level: {c4_level}\n---\n\n"
+    return (
+        f"---\ngenerated: true\nsource_sig: {sig}\n"
+        f"hier_version: {HIER_VERSION}\nc4_level: {c4_level}\n---\n\n"
+    )
 
 
 def compute_sig(graph_db: Path) -> str:
@@ -90,3 +93,29 @@ def save_provenance(meta_dir: Path, data: dict) -> None:
     (meta_dir / "provenance.json").write_text(
         json.dumps(data, indent=2, sort_keys=True), encoding="utf-8"
     )
+
+
+_ASSET_SUFFIXES: frozenset[str] = frozenset({
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".pdf", ".ai",
+    ".fig", ".sketch", ".xd", ".psd", ".woff", ".woff2",
+    ".ttf", ".otf", ".eot", ".mp4", ".mp3", ".mov",
+    ".zip", ".tar", ".gz", ".bin", ".exe", ".so", ".dylib",
+    ".html", ".css", ".js", ".json", ".xml", ".yaml", ".yml",
+    ".toml", ".ini", ".cfg", ".sh", ".bat", ".lock",
+})
+_PROSE_SUFFIXES: frozenset[str] = frozenset({".md", ".mdx", ".rst", ".txt"})
+
+
+def classify(path: Path) -> str:
+    """Classify a file as 'generated', 'human', or 'asset'.
+
+    'generated'  — has our provenance frontmatter (tool-owned)
+    'human'      — prose without our marker (never touch)
+    'asset'      — non-prose binary / config / image (detect & coexist)
+    """
+    sfx = path.suffix.lower()
+    if sfx not in _PROSE_SUFFIXES:
+        return "asset"
+    if is_generated(path):
+        return "generated"
+    return "human"

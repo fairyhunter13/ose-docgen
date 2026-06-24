@@ -1,6 +1,8 @@
 """Tree writer — sections: README, 01-context."""
 from __future__ import annotations
+
 from pathlib import Path
+
 from ose_docgen import graph_reader as gr
 from ose_docgen._tree_util import language_summary
 from ose_docgen.provenance import needs_regen, write_generated
@@ -44,11 +46,13 @@ def write_context(docs_dir: Path, gd: gr.GraphData, sig: str, members: list[str]
     p = d / "system-context.md"
     if needs_regen(p, sig):
         ml = "\n".join(f"  - `{Path(m).name}`" for m in members) or "  _(standalone)_"
+        _name = gd.project_path.name
+        _sid = _name.replace("-", "_")
         body = (
-            f"# System Context — {gd.project_path.name}\n\n<!-- expand: OSE_DOCGEN_TIER=sonnet -->\n\n"
-            f"**Root:** `{gd.project_path.name}`\n\n**Members:**\n{ml}\n\n{_SON}\n\n"
+            f"# System Context — {_name}\n\n<!-- expand: OSE_DOCGEN_TIER=sonnet -->\n\n"
+            f"**Root:** `{_name}`\n\n**Members:**\n{ml}\n\n{_SON}\n\n"
             f"```mermaid\nC4Context\n"
-            f'    System(s_{gd.project_path.name.replace("-","_")}, "{gd.project_path.name}", "")\n```\n'
+            f'    System(s_{_sid}, "{_name}", "")\n```\n'
         )
         write_generated(p, "context", sig, body)
         out[str(p)] = "written"

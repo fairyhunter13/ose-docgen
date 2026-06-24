@@ -1,7 +1,9 @@
 """Tree writer — sections: 02-containers, 03-components."""
 from __future__ import annotations
+
 from collections import defaultdict
 from pathlib import Path
+
 from ose_docgen import graph_reader as gr
 from ose_docgen._tree_util import community_slug, mermaid_component, mermaid_container
 from ose_docgen.provenance import needs_regen, write_generated

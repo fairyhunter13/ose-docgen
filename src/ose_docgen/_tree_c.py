@@ -1,6 +1,8 @@
 """Tree writer — sections: 04-reference, 05-how-to, 06-decisions, _meta."""
 from __future__ import annotations
+
 from pathlib import Path
+
 from ose_docgen import graph_reader as gr
 from ose_docgen._tree_util import rel
 from ose_docgen.provenance import HIER_VERSION, needs_regen, write_generated
@@ -22,7 +24,8 @@ def write_reference(docs_dir: Path, gd: gr.GraphData, sig: str) -> dict:
         top = list(fedges)[:40]
         lines = (
             ["```mermaid", "graph TD"]
-            + [f"    {Path(a).stem.replace('-','_')} --> {Path(b).stem.replace('-','_')}" for a, b in top]
+            + [f"    {Path(a).stem.replace('-', '_')} --> {Path(b).stem.replace('-', '_')}"
+               for a, b in top]
             + ["```"]
         )
         write_generated(p, "code", sig, (
