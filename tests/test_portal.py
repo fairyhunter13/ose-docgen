@@ -7,7 +7,6 @@ PE1b: second run is idempotent (0 new writes).
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -48,9 +47,6 @@ def synth_root():
 @pytest.mark.slow
 def test_pe1a_portal_generates_structure(synth_root):
     """PE1a: portal writes docs/, preserves human file, no /home/ leak."""
-    if not shutil.which("claude"):
-        pytest.skip("claude CLI not in PATH")
-
     from ose_docgen.portal import portal
 
     member = synth_root / "member-service"
@@ -94,9 +90,6 @@ def test_pe1a_portal_generates_structure(synth_root):
 @pytest.mark.slow
 def test_pe1b_portal_idempotent(synth_root):
     """PE1b: second portal run produces 0 new writes (idempotent)."""
-    if not shutil.which("claude"):
-        pytest.skip("claude CLI not in PATH")
-
     from ose_docgen.portal import portal
 
     member = synth_root / "member-service"

@@ -1,11 +1,9 @@
 """Hybrid bucket classifier tests: Tier-0 keyword and Tier-1 semantic Haiku.
 
 Tier-0 is always tested ($0, deterministic).
-Tier-1 (semantic) only runs when OSE_DOCGEN_LLM=1 and 'claude' is in PATH.
+Tier-1 (semantic, @slow) requires claude CLI; marked slow, not skipped.
 """
 from __future__ import annotations
-
-import os
 
 import pytest
 
@@ -43,16 +41,11 @@ class TestTier0Keywords:
 
 # ── Tier-1 semantic classifier (needs OSE_DOCGEN_LLM=1 + claude in PATH) ────
 
-def _tier1_available() -> bool:
-    import shutil
-    return os.environ.get("OSE_DOCGEN_LLM", "0") == "1" and bool(shutil.which("claude"))
-
-
 @pytest.mark.slow
-@pytest.mark.skipif(not _tier1_available(), reason="OSE_DOCGEN_LLM=1 + claude required")
 class TestTier1Semantic:
-    def test_ambiguous_doc_classified_by_content(self, tmp_path):
+    def test_ambiguous_doc_classified_by_content(self, tmp_path, monkeypatch):
         """A file with 'readme.md' name but deployment content → 05-how-to (content wins)."""
+        monkeypatch.setenv("OSE_DOCGEN_LLM", "1")
         from ose_docgen._classify import classify_buckets_semantic
         p = tmp_path / "readme.md"
         p.write_text(
@@ -66,8 +59,9 @@ class TestTier1Semantic:
         # Either semantic (05-how-to) or falls back to Tier-0; must be a valid bucket
         assert result.get("readme.md", "01-context") in _STANDARD_BUCKETS
 
-    def test_non_english_doc_classified(self, tmp_path):
+    def test_non_english_doc_classified(self, tmp_path, monkeypatch):
         """A Vietnamese-named file is classified by its content, not filename."""
+        monkeypatch.setenv("OSE_DOCGEN_LLM", "1")
         from ose_docgen._classify import classify_buckets_semantic
         rel = "tai_lieu_api.md"
         (tmp_path / rel).write_text(
@@ -77,10 +71,11 @@ class TestTier1Semantic:
         bucket = result.get(rel, "01-context")
         assert bucket in _STANDARD_BUCKETS
 
-    def test_result_cached_on_second_call(self, tmp_path):
+    def test_result_cached_on_second_call(self, tmp_path, monkeypatch):
         """Second classify call with unchanged content skips the LLM (uses cache)."""
         import unittest.mock as mock
 
+        monkeypatch.setenv("OSE_DOCGEN_LLM", "1")
         from ose_docgen._classify import classify_buckets_semantic
         rel = "guide.md"
         (tmp_path / rel).write_text("# How to run\n\nStep 1.\n")
@@ -90,10 +85,11 @@ class TestTier1Semantic:
             classify_buckets_semantic(tmp_path, [rel], tmp_path / "_meta")
             assert spy.call_count == 0, "subprocess.run called despite valid cache"
 
-    def test_error_returns_empty_not_raises(self, tmp_path):
+    def test_error_returns_empty_not_raises(self, tmp_path, monkeypatch):
         """If the claude call fails, classify_buckets_semantic returns {} (Tier-0 fallback)."""
         import unittest.mock as mock
 
+        monkeypatch.setenv("OSE_DOCGEN_LLM", "1")
         from ose_docgen._classify import classify_buckets_semantic
         (tmp_path / "doc.md").write_text("# Guide\n")
         with mock.patch("ose_docgen._classify.subprocess.run", side_effect=RuntimeError("boom")):

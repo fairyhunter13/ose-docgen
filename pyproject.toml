@@ -25,6 +25,10 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+addopts = "--strict-markers --strict-config"
+markers = [
+    "slow: LLM-heavy (>30s), requires claude CLI",
+]
 
 [tool.ruff]
 line-length = 100
@@ -32,3 +36,4 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
