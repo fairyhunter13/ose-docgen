@@ -48,3 +48,21 @@ CLAUDE_PROFILES: list[str] = [p.strip() for p in _raw_profiles.split(",") if p.s
 # Schema version this tool understands (must match ALGO_VERSION+HIER_VERSION in OSE).
 # Bump when graph.db schema changes so we can detect incompatible data contracts.
 GRAPH_CONTRACT_VERSION = "fg1+lp2"
+
+# Portal (A): agentic repo-native hierarchy generator.
+PORTAL_ON: bool = os.environ.get("OSE_DOCGEN_PORTAL", "0") != "0"
+TRUTHFULNESS_MIN: float = float(os.environ.get("OSE_DOCGEN_TRUTHFULNESS_MIN", "0.90"))
+MAX_PAGES_PER_RUN: int = int(os.environ.get("OSE_DOCGEN_MAX_PAGES", "20"))
+
+_PHASE_MODELS: dict[str, str] = {
+    "architect": MODEL_SONNET,
+    "verify_judge": MODEL_SONNET,
+    "explore": MODEL_HAIKU,
+    "write": MODEL_HAIKU,
+    "skills": MODEL_HAIKU,
+}
+
+
+def model_for_phase(phase: str) -> str:
+    """Return model ID for a portal pipeline phase (explore/architect/write/skills/verify_judge)."""
+    return _PHASE_MODELS.get(phase, MODEL_HAIKU)

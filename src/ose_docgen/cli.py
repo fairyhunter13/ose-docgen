@@ -95,10 +95,45 @@ def _cmd_clean(argv: list[str]) -> int:
     return 0
 
 
+def _cmd_portal(argv: list[str]) -> int:
+    p = argparse.ArgumentParser(
+        prog="ose-docgen portal",
+        description="Agentic repo-native portal (OSE-independent, reads real filesystem).",
+    )
+    p.add_argument("root", help="Repository root path")
+    p.add_argument("--member", action="append", default=None, dest="members",
+                   help="Additional member paths (repeatable; auto-discovered if omitted)")
+    p.add_argument("--skills", action="store_true",
+                   help="Generate .claude/skills/ stubs for recurring cross-repo concerns")
+    p.add_argument("--no-llm", action="store_true",
+                   help="Skip all LLM calls (dry-run)")
+    args = p.parse_args(argv)
+    root = Path(args.root).resolve()
+    if not root.is_dir():
+        print(f"error: not a directory: {root}", file=sys.stderr)
+        return 1
+    from ose_docgen.portal import portal
+    result = portal(root, member_paths=args.members, skills=args.skills, no_llm=args.no_llm)
+    written = result.get("written", [])
+    errors = result.get("errors", [])
+    mode = result.get("mode", "portal")
+    print(f"ose-docgen portal: {root.name} | written={len(written)} "
+          f"errors={len(errors)} mode={mode}")
+    if result.get("verify"):
+        vr = result["verify"]
+        print(f"  truthfulness: {vr['score']:.2%} "
+              f"({vr['valid_refs']}/{vr['total_refs']} refs valid)")
+    for e in errors:
+        print(f"  ERROR: {e}", file=sys.stderr)
+    return 1 if errors else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args_raw = list(argv) if argv is not None else sys.argv[1:]
     if args_raw and args_raw[0] == "clean":
         return _cmd_clean(args_raw[1:])
+    if args_raw and args_raw[0] == "portal":
+        return _cmd_portal(args_raw[1:])
     return _cmd_generate(args_raw)
 
 
