@@ -135,9 +135,11 @@ def _write_pages(
             continue
         srcs = ", ".join(pg.get("grounding_sources", [])[:5]) or "repo overview"
         prompt = (
-            f"Write the markdown body for docs/{rel} ('{pg.get('title', '')}'), "
-            f"grounded in: {srcs}. No frontmatter. Concise, factual, source-verified. "
-            "No /home/ paths or internal hostnames."
+            f"Output ONLY the markdown body (no frontmatter, no explanation) for the "
+            f"'{pg.get('title', '')}' documentation page. "
+            f"Ground it in: {srcs}. Concise, factual, source-verified. "
+            "No /home/ paths or internal hostnames. "
+            "Start directly with a heading — no preamble."
         )
         text = run_claude_portal(
             prompt, model_for_phase("write"),
