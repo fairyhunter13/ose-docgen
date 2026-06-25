@@ -59,7 +59,7 @@ def portal(
     written, errors = _write_pages(plan, docs_dir, root, members, sig, profile)
 
     from ose_docgen.verify import verify
-    vr = verify(docs_dir, root, plan)
+    vr = verify(docs_dir, root, plan, members=members)
     dead_section = (
         "\n## Dead references\n" + "\n".join(f"- {d}" for d in vr["dead_refs"])
         if vr["dead_refs"] else ""

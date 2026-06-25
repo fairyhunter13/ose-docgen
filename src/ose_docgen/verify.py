@@ -18,9 +18,11 @@ _CODE_PATH_RE = re.compile(
 )
 
 
-def verify(docs_dir: Path, root: Path, plan: dict) -> dict:
+def verify(docs_dir: Path, root: Path, plan: dict,
+           members: list[Path] | None = None) -> dict:
     """Check truthfulness of generated portal pages. Returns score + dead refs."""
     pages = plan.get("pages", [])
+    members = members or []
     total = valid = 0
     dead: list[str] = []
     below: list[str] = []
@@ -33,12 +35,12 @@ def verify(docs_dir: Path, root: Path, plan: dict) -> dict:
         if not p.exists() or classify(p) != "generated":
             continue
         text = p.read_text(encoding="utf-8", errors="replace")
-        refs = _extract_refs(text)
+        refs = _extract_refs(text, page_dir=p.parent, docs_dir=docs_dir)
         pv = pt = 0
         for ref in refs:
             pt += 1
             total += 1
-            if _ref_exists(ref, root, docs_dir):
+            if _ref_exists(ref, root, docs_dir, members):
                 pv += 1
                 valid += 1
             else:
@@ -56,18 +58,28 @@ def verify(docs_dir: Path, root: Path, plan: dict) -> dict:
     }
 
 
-def _extract_refs(text: str) -> list[str]:
+def _extract_refs(text: str, *, page_dir: Path | None = None,
+                  docs_dir: Path | None = None) -> list[str]:
     refs: list[str] = []
     for _, tgt in _LINK_RE.findall(text):
         if not tgt.startswith(("http://", "https://", "#", "mailto:")):
-            refs.append(tgt.split("#")[0])
+            raw = tgt.split("#")[0]
+            # Resolve relative ../ links to a docs_dir-relative path
+            if page_dir and docs_dir and raw.startswith("../"):
+                try:
+                    resolved = (page_dir / raw).resolve()
+                    raw = str(resolved.relative_to(docs_dir))
+                except Exception:
+                    pass
+            refs.append(raw)
     for m in _CODE_PATH_RE.findall(text):
         refs.append(m)
     return [r for r in refs if r]
 
 
-def _ref_exists(ref: str, root: Path, docs_dir: Path) -> bool:
-    for base in (root, docs_dir):
+def _ref_exists(ref: str, root: Path, docs_dir: Path,
+                members: list[Path] | None = None) -> bool:
+    for base in (root, docs_dir, *(members or [])):
         if (base / ref).exists():
             return True
     if "/" not in ref:
