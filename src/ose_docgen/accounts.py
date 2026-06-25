@@ -150,8 +150,11 @@ def subprocess_env(config_dir: str) -> dict[str, str]:
 
     - Sets CLAUDE_CONFIG_DIR to the chosen profile.
     - REMOVES ANTHROPIC_API_KEY so subscription credentials are used, not API billing.
+    - Sets CLAUDE_CODE_SAFE_MODE=1 to prevent IPC deadlock when called from within
+      an active Claude Code session (parent-IPC hang otherwise).
     - Inherits PATH so the 'claude' binary is found.
     """
     env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
     env["CLAUDE_CONFIG_DIR"] = config_dir
+    env["CLAUDE_CODE_SAFE_MODE"] = "1"
     return env
