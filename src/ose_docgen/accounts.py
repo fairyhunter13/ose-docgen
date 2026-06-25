@@ -43,7 +43,13 @@ def _load_token(config_dir: str) -> str | None:
         return None
     try:
         data = json.loads(creds.read_text(encoding="utf-8"))
-        return data.get("oauth_token") or data.get("access_token") or data.get("token")
+        # Flat token keys (older format)
+        flat = data.get("oauth_token") or data.get("access_token") or data.get("token")
+        if flat:
+            return flat
+        # Nested claudeAiOauth structure (Claude Code >= 2.x)
+        nested = data.get("claudeAiOauth") or {}
+        return nested.get("accessToken") or nested.get("access_token")
     except Exception:
         return None
 
