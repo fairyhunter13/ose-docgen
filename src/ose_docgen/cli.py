@@ -1,4 +1,5 @@
-"""Standalone CLI: ose-docgen <root> [--graph graph.db] [--docs-dir docs/] [--llm]
+"""Standalone CLI: ose-docgen [generate] <root> [--graph graph.db] [--docs-dir docs/] [--llm]
+                  ose-docgen clean <root> [--docs-dir docs/]
 
 Usable outside the OSE daemon — runs Phase 1 + optional Phase 2 on any indexed project.
 """
@@ -9,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def main(argv: list[str] | None = None) -> int:
+def _cmd_generate(argv: list[str]) -> int:
     p = argparse.ArgumentParser(
         prog="ose-docgen",
         description="Generate a C4×Diátaxis information hierarchy for any repository.",
@@ -34,7 +35,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.graph:
         graph_db = Path(args.graph)
     else:
-        # OSE stores indexes as ~/.local/share/opencode-search/indexes/<name>-<hash>/graph.db
         data_root = Path.home() / ".local" / "share" / "opencode-search"
         index_root = data_root / "indexes"
         candidates = (
@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"warning: multiple index dirs for '{root.name}' — using newest", file=sys.stderr)
             graph_db = max(candidates, key=lambda p: p.stat().st_mtime)
         else:
-            graph_db = root / "graph.db"  # bare fallback
+            graph_db = root / "graph.db"
 
     if not graph_db.exists():
         print(f"error: graph.db not found (tried {graph_db})\n"
@@ -72,6 +72,34 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ERROR: {e}", file=sys.stderr)
         return 1
     return 0
+
+
+def _cmd_clean(argv: list[str]) -> int:
+    p = argparse.ArgumentParser(
+        prog="ose-docgen clean",
+        description="Remove generated docs from a repository, preserving human files.",
+    )
+    p.add_argument("root", help="Repository root path")
+    p.add_argument("--docs-dir", default=None,
+                   help="Docs directory to clean (default: <root>/docs/)")
+    args = p.parse_args(argv)
+
+    root = Path(args.root).resolve()
+    docs_dir = Path(args.docs_dir).resolve() if args.docs_dir else root / "docs"
+
+    from ose_docgen.cleanup import clean_generated
+
+    result = clean_generated(docs_dir)
+    print(f"ose-docgen clean: removed={len(result['removed'])} "
+          f"preserved={len(result['preserved'])} pruned_dirs={len(result['pruned_dirs'])}")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    args_raw = list(argv) if argv is not None else sys.argv[1:]
+    if args_raw and args_raw[0] == "clean":
+        return _cmd_clean(args_raw[1:])
+    return _cmd_generate(args_raw)
 
 
 if __name__ == "__main__":
