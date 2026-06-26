@@ -28,13 +28,25 @@ def portal(root, *, docs_dir=None, member_paths=None, skills=False, no_llm=False
     if no_llm:
         return {"written": [], "skipped": [], "errors": [], "mode": "no_llm"}
 
-    profile = pick_profile(CLAUDE_PROFILES)
+    valid_profiles = [p for p in CLAUDE_PROFILES if (Path(p) / ".credentials.json").exists()]
+    profile = pick_profile(valid_profiles)
+    if not profile and valid_profiles:
+        profile = valid_profiles[0]
     if not profile:
         return {"written": [], "skipped": [], "errors": ["no_profile"], "mode": "ih"}
 
     sig = portal_sig(root)
     briefs = [explore_repo(r, profile=profile) for r in [root, *members]]
     plan = _architect(briefs, profile)
+    # Profile failover: if architect fails, try remaining valid profiles
+    if not plan:
+        for alt in [p for p in valid_profiles if p != profile]:
+            alt_briefs = [explore_repo(r, profile=alt) for r in [root, *members]]
+            plan = _architect(alt_briefs, alt)
+            if plan:
+                profile = alt
+                briefs = alt_briefs
+                break
     if not plan:
         _restore_human(human)
         return {"written": [], "skipped": [], "errors": ["architect_failed"], "mode": "ih"}
