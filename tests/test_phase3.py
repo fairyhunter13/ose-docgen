@@ -1,6 +1,6 @@
 """Phase 3 tests: migration model — classify, CROSSWALK, MIGRATION.md, idempotency.
 
-Uses synth_graph_db (sqlite3 fixture — no OSE import, no GPU, always runnable).
+Uses synth_repo (source tree fixture — no OSE import, no GPU, always runnable).
 No Claude calls. No GPU required.
 """
 from __future__ import annotations
@@ -12,10 +12,8 @@ from ose_docgen.generate import generate
 from ose_docgen.provenance import classify, is_generated, make_frontmatter
 
 
-def _run(graph_db: Path, docs_dir: Path, project_path: Path) -> dict:
-    return generate(
-        project_path=project_path, graph_db_path=graph_db, docs_dir=str(docs_dir), llm=False
-    )
+def _run(project: Path, docs_dir: Path) -> dict:
+    return generate(project_path=project, docs_dir=str(docs_dir), llm=False)
 
 
 class TestClassify:
@@ -41,104 +39,86 @@ class TestClassify:
 
 
 class TestCrossWalk:
-    def test_crosswalk_built(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_crosswalk_built(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
         human = docs / "repository-guide.md"
         human.write_text("# My Guide\n", encoding="utf-8")
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         crosswalk = docs / "_meta" / "CROSSWALK.md"
         assert crosswalk.exists(), "CROSSWALK.md must be generated"
         assert is_generated(crosswalk)
         assert "repository-guide.md" in crosswalk.read_text(encoding="utf-8")
 
-    def test_crosswalk_human_bucket_assignment(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_crosswalk_human_bucket_assignment(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
         (docs / "api-endpoints.md").write_text("# API\n", encoding="utf-8")
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         content = (docs / "_meta" / "CROSSWALK.md").read_text(encoding="utf-8")
         assert "02-containers" in content or "04-reference" in content
 
-    def test_no_human_files_gives_empty_crosswalk(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_no_human_files_gives_empty_crosswalk(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         cw = docs / "_meta" / "CROSSWALK.md"
         assert cw.exists()
         assert "No human-authored files found" in cw.read_text(encoding="utf-8")
 
 
 class TestHumanPreservation:
-    def test_human_file_byte_unchanged(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_human_file_byte_unchanged(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
         human = docs / "DESIGN.md"
         human.write_text("# My Design\nImportant notes.\n")
         before = hashlib.sha256(human.read_bytes()).hexdigest()
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         assert hashlib.sha256(human.read_bytes()).hexdigest() == before
 
-    def test_asset_file_not_modified(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_asset_file_not_modified(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
         asset = docs / "logo.png"
         asset.write_bytes(b"\x89PNG\r\n\x1a\n")
         before = asset.read_bytes()
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         assert asset.read_bytes() == before, "asset file was modified"
 
 
 class TestMigrationMd:
-    def test_migration_md_emitted(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_migration_md_emitted(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         assert (docs / "_meta" / "MIGRATION.md").exists()
 
-    def test_migration_md_shows_human_count(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_migration_md_shows_human_count(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
         (docs / "guide.md").write_text("# Guide\n")
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         content = (docs / "_meta" / "MIGRATION.md").read_text(encoding="utf-8")
         assert "HUMAN-PROSE" in content
         assert "1" in content  # at least one human file counted
 
-    def test_migration_md_shows_asset_skipped(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_migration_md_shows_asset_skipped(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
         (docs / "fig.png").write_bytes(b"\x89PNG")
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         content = (docs / "_meta" / "MIGRATION.md").read_text(encoding="utf-8")
         assert "NON-DOC ASSET" in content
 
 
 class TestMigrationIdempotency:
-    def test_second_run_does_not_rewrite_crosswalk(self, synth_graph_db, tmp_path):
-        project = tmp_path / "project"
-        project.mkdir()
+    def test_second_run_does_not_rewrite_crosswalk(self, synth_repo, tmp_path):
         docs = tmp_path / "docs"
         docs.mkdir()
         (docs / "notes.md").write_text("# Notes\n")
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         cw = docs / "_meta" / "CROSSWALK.md"
         mtime1 = cw.stat().st_mtime_ns
-        _run(synth_graph_db, docs, project)
+        _run(synth_repo, docs)
         assert cw.stat().st_mtime_ns == mtime1, "CROSSWALK.md was rewritten on second run"
