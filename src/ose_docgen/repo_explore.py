@@ -79,7 +79,7 @@ def run_claude_portal(
     for d in add_dirs:
         cmd += ["--add-dir", d]
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True,
+        r = subprocess.run(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                            timeout=timeout, env=subprocess_env(profile), cwd=cwd)
         if r.returncode != 0:
             return None
