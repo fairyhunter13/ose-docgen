@@ -127,5 +127,6 @@ def explore_repo(root: Path, *, profile: str, timeout: int = 120) -> dict:
                               profile=profile, timeout=timeout, cwd=str(root))
     brief = _from_json(text) or {"summary": "explore failed", "_error": True}
     brief.update({"_root": str(root), "_rel": root.name, "_sig": portal_sig(root)})
-    _BRIEF_CACHE[key] = brief
+    if not brief.get("_error"):
+        _BRIEF_CACHE[key] = brief  # only cache successful explores; failures allow retry
     return brief

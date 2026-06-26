@@ -116,8 +116,14 @@ def get_profile_usage(config_dir: str) -> ProfileUsage:
         # Assume available if we can't read (be optimistic; 429 will trigger failover)
         return ProfileUsage(config_dir=config_dir, five_hour_pct=0.0, seven_day_pct=0.0, valid=True)
 
-    five_h = float(data.get("five_hour_utilization", 0.0))
-    seven_d = float(data.get("seven_day_utilization", 0.0))
+    # Nested format (current): {"five_hour": {"utilization": 25.0}, ...} — percentages 0-100
+    # Flat format (old/unknown): {"five_hour_utilization": 0.25} — fractions 0-1
+    if "five_hour" in data:
+        five_h = float((data["five_hour"] or {}).get("utilization", 0)) / 100.0
+        seven_d = float((data["seven_day"] or {}).get("utilization", 0)) / 100.0
+    else:
+        five_h = float(data.get("five_hour_utilization", 0.0))
+        seven_d = float(data.get("seven_day_utilization", 0.0))
     _write_cache(config_dir, {"five_hour_pct": five_h, "seven_day_pct": seven_d})
     return ProfileUsage(
         config_dir=config_dir, five_hour_pct=five_h, seven_day_pct=seven_d, valid=True
