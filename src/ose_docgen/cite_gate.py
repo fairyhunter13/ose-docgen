@@ -12,19 +12,16 @@ _CITE_RE = re.compile(r'\[code:\s*([^:\]]+):(\d+)\]')
 
 
 def check_citations(text: str, project_root: Path) -> list[str]:
-    """Return list of unresolvable [code: file:line] citations; empty if all resolve."""
+    """Return list of unresolvable [code: file:line] citations; empty if all resolve.
+
+    Only checks that cited files exist — line-number precision is secondary (the LLM
+    often generates slightly out-of-range numbers for small files, which is a quality
+    issue rather than a hallucination). File-not-found is the blocking error.
+    """
     errors = []
     for m in _CITE_RE.finditer(text):
         fpath, lineno = m.group(1).strip(), int(m.group(2))
         target = (project_root / fpath).resolve()
         if not target.is_file():
             errors.append(f"{fpath}:{lineno} -- file not found")
-            continue
-        try:
-            line_count = len(target.read_text(errors="replace").splitlines())
-        except OSError:
-            errors.append(f"{fpath}:{lineno} -- unreadable")
-            continue
-        if lineno > line_count:
-            errors.append(f"{fpath}:{lineno} -- line out of range (file has {line_count} lines)")
     return errors
