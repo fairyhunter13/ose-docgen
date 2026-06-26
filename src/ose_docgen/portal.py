@@ -13,7 +13,7 @@ from ose_docgen.repo_explore import (
     _from_json, discover_members, explore_repo, portal_sig, run_claude_portal,
 )
 
-_TIMEOUT_ARCH = 180
+_TIMEOUT_ARCH = 300  # full suite context adds system load; SONNET needs up to 5 min
 _TIMEOUT_WRITE = 120
 
 
