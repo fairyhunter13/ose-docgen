@@ -19,7 +19,7 @@ MODEL_SONNET = "claude-sonnet-4-6"
 # Ordered list of CLAUDE_CONFIG_DIR paths (two accounts supported).
 _raw_profiles = os.environ.get(
     "OSE_DOCGEN_CLAUDE_PROFILES",
-    f"{os.path.expanduser('~/.claude')},{os.path.expanduser('~/.claude1')}",
+    f"{os.path.expanduser('~/.claude')},{os.path.expanduser('~/.claude-account1')}",
 )
 CLAUDE_PROFILES: list[str] = [p.strip() for p in _raw_profiles.split(",") if p.strip()]
 

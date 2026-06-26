@@ -1,6 +1,6 @@
 """Subscription account selector — picks the Claude profile with most headroom.
 
-Supports two accounts (e.g. ~/.claude + ~/.claude1) via CLAUDE_CONFIG_DIR isolation.
+Supports two accounts (e.g. ~/.claude + ~/.claude-account1) via CLAUDE_CONFIG_DIR isolation.
 Reads 5h+7d utilization from the undocumented oauth/usage endpoint using the OAuth token
 from each profile's .credentials.json, with a 5-minute local cache per profile.
 
