@@ -17,7 +17,7 @@ _TIMEOUT_ARCH = 180
 _TIMEOUT_WRITE = 120
 
 
-def portal(root, *, docs_dir=None, member_paths=None, skills=False, no_llm=False):
+def portal(root, *, docs_dir=None, member_paths=None, skills=False, no_llm=False, max_pages=None):
     root = Path(root).resolve()
     if docs_dir is None:
         docs_dir = root / config.DOCS_DIR
@@ -42,7 +42,7 @@ def portal(root, *, docs_dir=None, member_paths=None, skills=False, no_llm=False
     meta_dir = ih_dir / "_meta"
     meta_dir.mkdir(parents=True, exist_ok=True)
     (meta_dir / "ih_plan.json").write_text(json.dumps(plan, indent=2))
-    written, errors = _write_pages(plan, ih_dir, root, members, sig, profile)
+    written, errors = _write_pages(plan, ih_dir, root, members, sig, profile, max_pages=max_pages)
 
     from ose_docgen.verify import verify
     vr = verify(ih_dir, root, plan, members=members)
@@ -88,11 +88,12 @@ def _architect(briefs, profile):
     return _from_json(text)
 
 
-def _write_pages(plan, ih_dir, root, members, sig, profile):
+def _write_pages(plan, ih_dir, root, members, sig, profile, max_pages=None):
+    limit = max_pages if max_pages is not None else MAX_PAGES_PER_RUN
     pages = sorted(plan.get("pages", []), key=lambda p: p.get("path", "").count("/"))
     add_dirs = [str(root), *[str(m) for m in members]]
     written, errors = [], []
-    for pg in pages[:MAX_PAGES_PER_RUN]:
+    for pg in pages[:limit]:
         rel = pg.get("path", "")
         if not rel:
             continue

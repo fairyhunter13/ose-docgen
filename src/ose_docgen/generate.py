@@ -22,6 +22,7 @@ def generate(
     llm: bool | None = None,
     graph_db_path: object = None,
     member_db_paths: object = None,
+    max_pages: int | None = None,
 ) -> dict:
     """Generate IH docs via claude -p. Kill-switch: OSE_DOCGEN=0 → no output."""
     if graph_db_path is not None:
@@ -38,4 +39,4 @@ def generate(
     if os.environ.get("OSE_DOCGEN", "1") == "0":
         return {"written": [], "skipped": [], "errors": [], "sig": "", "mode": "off"}
 
-    return portal(project_path, docs_dir=docs_dir, member_paths=member_paths or [])
+    return portal(project_path, docs_dir=docs_dir, member_paths=member_paths or [], max_pages=max_pages)
