@@ -74,7 +74,7 @@ def run_claude_portal(
     """Run claude -p headless; return extracted text or None on failure."""
     cmd = [_claude(), "-p", prompt, "--model", model,
            "--output-format", "json", "--allow-dangerously-skip-permissions"]
-    if tools:
+    if tools is not None:
         cmd += ["--allowedTools", tools]
     for d in add_dirs:
         cmd += ["--add-dir", d]
